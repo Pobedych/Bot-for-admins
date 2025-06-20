@@ -1,12 +1,13 @@
 from aiogram import Router, F
 from aiogram.filters import CommandStart
-from aiogram.types import Message, CallbackQuery, InputFile, InputMediaPhoto
+from aiogram.types import Message, CallbackQuery, FSInputFile
 from keyboards.reply_kb import start_kb, new_user
 from aiogram.fsm.context import FSMContext
 from filters.fsm_filter import Report, Searchuser, ChangeBalanceUp, ChangeBalanceDown, Update
 from utils.database import new_users, get_users, delete_user, change_balance_bal, get_id
 from keyboards.inline_kb import up_balance, change_balance
 from aiogram.utils.chat_action import ChatActionSender
+from aiogram.utils.media_group import MediaGroupBuilder
 from create_bot import bot
 import asyncio
 from create_bot import admins
@@ -78,10 +79,14 @@ async def report_photo2(message: Message, state: FSMContext):
     file_path = file1.file_path
     await bot.download_file(file_path, "utils/downloads/photo2.jpg")
     summm2 = await main("utils/downloads/photo2.jpg")
+    abs_sum = abs(summm2-summm1)
+    media = MediaGroupBuilder(caption=f"Число подписчиков изменилось на {abs_sum}")
+    media.add_photo(FSInputFile('utils/downloads/photo1.jpg'))
+    media.add_photo(FSInputFile('utils/downloads/photo2.jpg'))
     if summm1 < summm2:
-        bot.send_message(chat_id=idi, text=f"Подписчиков подписалось {summm2 - summm1}")
+        await bot.send_media_group(chat_id=idi, media=media.build())
     elif summm2 < summm1:
-        await bot.send_message(chat_id=idi, text=f"Подписчиков отписалось {summm1 - summm2}")
+        await bot.send_media_group(chat_id=idi, media=media.build())
     await message.answer("Успешно отправлено")
     await state.clear()
 

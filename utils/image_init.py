@@ -41,5 +41,3 @@ async def main(m):
     result = await async_ocr(m)
     a = await mem(result)
     return a
-
-#asyncio.run(main())
