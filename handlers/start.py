@@ -15,19 +15,24 @@ from utils.image_init import main
 
 router = Router()
 
-
 @router.message(CommandStart())
 async def cmd_start(message: Message):
     if message.from_user.id in admins:
-        await message.answer(f'{message.from_user.username}, вы вошли как админ👤', reply_markup=start_kb())
+        await message.answer(
+            f'<b>{message.from_user.username}</b>, вы вошли как админ👤',
+            reply_markup=start_kb(),
+            parse_mode='html'
+        )
     else:
         await message.answer(f'Привет, {message.from_user.username}')
-        a = await new_users(message.from_user.id, message.from_user.username, 0)
-        if a != 'Пользователь уже существует':
-            await bot.send_message(chat_id=str(admins),
-                               text=f'Добавлен новый пользователь👍\n{message.from_user.username}\nid{message.from_user.id}')
-        else:
-            pass
+        result = await new_users(message.from_user.id, message.from_user.username, 0)
+        if result != 'Пользователь уже существует':
+            for admin_id in admins:
+                await bot.send_message(
+                    chat_id=admin_id,
+                    text=f'Добавлен новый пользователь👍\n{message.from_user.username}\nid{message.from_user.id}'
+                )
+
 
 
 @router.message(F.text == 'Отправить отчет📜')
@@ -42,31 +47,42 @@ async def cmd_send_photo(message: Message, state: FSMContext):
 @router.message(Report.report_id)
 async def report_id(message: Message, state: FSMContext):
     global idi
+    username = message.text
     try:
-        username = message.text
         if username.startswith('@'):
-            chat_id = username[1:]
+            data = await get_users(username[1:])
+            if data == 'Ничего не найдено':
+                await message.answer('Пользователь не найден', reply_markup=new_user())
+                await state.clear()
+            else:
+                try:
+                    chat_id = username[1:]
+                    idi = await get_id(chat_id)
+                    await message.answer("Отправьте фото")
+                    await state.set_state(Report.photo1)
+                except Exception:
+                    await message.answer('Отправьте именно фото')
         else:
             await message.answer("❌ Введите username (@user)!")
             return
-        idi = await get_id(chat_id)
-        await message.answer("Отправьте фото")
-        await state.set_state(Report.photo1)
-    except Exception:
-        await message.answer('Mistake')
+    except AttributeError:
+        await message.answer("❌ Введите username (@user)!")
 
 
 @router.message(Report.photo1, F.photo)
 async def report_photo1(message: Message, state: FSMContext):
     global summm1, file
-    photo_1 = message.photo[-1]
-    file_id = photo_1.file_id
-    await state.update_data(photo1=file_id)
-    file = await bot.get_file(file_id)
-    file_path = file.file_path
-    await bot.download_file(file_path, "utils/downloads/photo1.jpg")
-    summm1 = await main("utils/downloads/photo1.jpg")
-    await message.answer('Отправьте второе фото')
+    try:
+        photo_1 = message.photo[-1]
+        file_id = photo_1.file_id
+        await state.update_data(photo1=file_id)
+        file = await bot.get_file(file_id)
+        file_path = file.file_path
+        await bot.download_file(file_path, "utils/downloads/photo1.jpg")
+        summm1 = await main("utils/downloads/photo1.jpg")
+        await message.answer('Отправьте второе фото')
+    except Exception:
+        await message.answer('Отправьте именно фото')
     await state.set_state(Report.photo2)
 
 
@@ -103,7 +119,12 @@ async def balance(message: Message, state: FSMContext):
 
 @router.message(Searchuser.name)
 async def user_balance(message: Message, state: FSMContext):
-    name_user = message.text[1:]
+    username = message.text
+    if username.startswith('@'):
+        name_user = username[1:]
+    else:
+        await message.answer("❌ Введите username (@user)!")
+        return
     await state.update_data(name=name_user)
     await message.answer("Сейчас поищу")
     data = await state.get_data()
@@ -113,8 +134,10 @@ async def user_balance(message: Message, state: FSMContext):
     async with ChatActionSender(bot=bot, chat_id=message.from_user.id, action="typing"):
         await asyncio.sleep(2)
         if data1 == 'Ничего не найдено':
+            await message.delete()
             await message.answer('Ничего не найдено', reply_markup=new_user())
         else:
+            await message.delete()
             await message.answer("Нашел\n"
                                  f"ID: {message.text}\n"
                                  f"Баланс: {data1}💵", reply_markup=up_balance())
@@ -200,14 +223,23 @@ async def delete_user_user(callback_query: CallbackQuery):
     await callback_query.message.answer("Пользователь удален")
     await callback_query.message.answer('Выберете действие', reply_markup=start_kb())
 
-
-@router.message(F.text)
+"""Добавление нового юзера"""
+@router.message(F.text == 'Добавить нового юзера')
 async def add_user(message: Message):
     if message.from_user.id in admins:
-        if message.text == "Добавить этого пользователя" or message.text == "Добавить нового юзера":
-            await message.answer(
-                "Чтобы добавить нового пользователя, нужно отправить ему ссылку на этого бота и пусть он нажмет кнопку старт")
-        else:
-            await message.answer("Введите известную мне команду")
+            await message.answer("Чтобы добавить нового пользователя, нужно отправить ему ссылку на этого бота и пусть он нажмет кнопку старт", reply_markup=start_kb())
     else:
         await message.answer("У вас нет таких прав")
+
+@router.message(F.text == 'На главную🏠')
+async def back_to_main(message: Message):
+    if message.from_user.id in admins:
+        await message.answer("Вы вернулись на главную", reply_markup=start_kb())
+    else:
+        await message.answer("У вас нет таких прав")
+
+@router.callback_query(F.data == 'back_to_main')
+async def back_to_main1(callback_query: CallbackQuery):
+    await callback_query.answer()
+    await callback_query.message.delete()
+    await callback_query.message.answer("Вы вернулись на главную", reply_markup=start_kb())

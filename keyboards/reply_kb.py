@@ -10,6 +10,7 @@ def start_kb():
 
 def new_user():
     kb_list = [
-        [KeyboardButton(text="Добавить этого юзера")]
+        [KeyboardButton(text="Добавить нового юзера")],
+        [KeyboardButton(text='На главную🏠')]
     ]
     return ReplyKeyboardMarkup(keyboard=kb_list, one_time_keyboard=True, resize_keyboard=True)

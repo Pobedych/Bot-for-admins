@@ -3,7 +3,8 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 def up_balance():
     inline_kb = [
         [InlineKeyboardButton(text="Поменять баланс", callback_data="change_balance")],
-        [InlineKeyboardButton(text="Удалить пользователя", callback_data='delete_user')]
+        [InlineKeyboardButton(text="Удалить пользователя", callback_data='delete_user')],
+        [InlineKeyboardButton(text="На главную🏠", callback_data="back_to_main")],
     ]
     return InlineKeyboardMarkup(inline_keyboard=inline_kb)
 

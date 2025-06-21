@@ -2,8 +2,6 @@ import easyocr
 import asyncio
 
 reader = easyocr.Reader(['en', 'ru'])
-keywords = ["members", "subscribers"]
-
 
 async def async_ocr(filepath):
     loop = asyncio.get_event_loop()
