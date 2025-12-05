@@ -1,3 +1,5 @@
+import asyncio
+
 from aiogram import Router, F
 from aiogram.filters import CommandStart
 from aiogram.types import Message, CallbackQuery, FSInputFile
@@ -9,9 +11,10 @@ from keyboards.inline_kb import up_balance, change_balance
 from aiogram.utils.chat_action import ChatActionSender
 from aiogram.utils.media_group import MediaGroupBuilder
 from create_bot import bot
-import asyncio
 from create_bot import admins
 from utils.image_init import main
+from settings.tools import admin_only
+
 
 router = Router()
 
@@ -36,12 +39,10 @@ async def cmd_start(message: Message):
 
 
 @router.message(F.text == 'Отправить отчет📜')
+@admin_only
 async def cmd_send_photo(message: Message, state: FSMContext):
-    if message.from_user.id in admins:
-        await state.set_state(Report.report_id)
-        await message.reply('Напишите id или username пользователя')
-    else:
-        await message.answer('У вас нет прав админа')
+    await state.set_state(Report.report_id)
+    await message.reply('Напишите id или username пользователя')
 
 
 @router.message(Report.report_id)
@@ -109,12 +110,10 @@ async def report_photo2(message: Message, state: FSMContext):
 
 """ Управление юзером (Удаление и изменения баланса) """
 @router.message(F.text == 'Баланс💵')
+@admin_only
 async def balance(message: Message, state: FSMContext):
-    if message.from_user.id in admins:
-        await state.set_state(Searchuser.name)
-        await message.answer("Введите username пользователя(@user)")
-    else:
-        pass
+    await state.set_state(Searchuser.name)
+    await message.answer("Введите username пользователя(@user)")
 
 
 @router.message(Searchuser.name)
@@ -225,18 +224,15 @@ async def delete_user_user(callback_query: CallbackQuery):
 
 """Добавление нового юзера"""
 @router.message(F.text == 'Добавить нового юзера')
+@admin_only
 async def add_user(message: Message):
-    if message.from_user.id in admins:
-            await message.answer("Чтобы добавить нового пользователя, нужно отправить ему ссылку на этого бота и пусть он нажмет кнопку старт", reply_markup=start_kb())
-    else:
-        await message.answer("У вас нет таких прав")
+    await message.answer("Чтобы добавить нового пользователя, нужно отправить ему ссылку на этого бота и пусть он нажмет кнопку старт", reply_markup=start_kb())
+    
 
 @router.message(F.text == 'На главную🏠')
+@admin_only
 async def back_to_main(message: Message):
-    if message.from_user.id in admins:
-        await message.answer("Вы вернулись на главную", reply_markup=start_kb())
-    else:
-        await message.answer("У вас нет таких прав")
+    await message.answer("Вы вернулись на главную", reply_markup=start_kb())
 
 @router.callback_query(F.data == 'back_to_main')
 async def back_to_main1(callback_query: CallbackQuery):
